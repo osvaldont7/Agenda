@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Agenda 2026 - Oceanic Shades</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Georgia', serif; background:#f9fdff; color:#073A4B; margin:0; padding:0; line-height:1.6; }
+        .container { max-width:1100px; margin:0 auto; padding:20px; }
+        .page { background:white; padding:40px; margin:20px auto; box-shadow:0 8px 30px rgba(80,128,190,0.15); border-radius:12px; }
+        h1, h2, h3, h4 { text-align:center; color:#5080BE; }
+        .header-beige { background:#5080BE; color:white; padding:20px; text-align:center; font-size:26px; font-weight:bold; margin-bottom:40px; border-radius:12px; }
+        .field { margin-bottom:20px; }
+        .field label { display:block; font-weight:bold; margin-bottom:5px; color:#5080BE; }
+        .field input { width:100%; border:none; border-bottom:2px solid #7EBBDA; padding:10px; font-size:16px; background:transparent; }
+        .two-columns { display:grid; grid-template-columns:1fr 1fr; gap:40px; }
+        .notes-line { border-bottom:1px dotted #C6DEF6; margin:15px 0; min-height:35px; padding:5px; contenteditable:"true"; outline:none; }
+        .monthly-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:25px; }
+        .month-box { background:#E0F2FC; padding:20px; border-radius:12px; position:relative; border:1px solid #C6DEF6; }
+        .month-box h4 { background:#5080BE; color:white; margin:-20px -20px 20px; padding:15px; border-radius:12px 12px 0 0; text-align:center; }
+        .edit-btn { position:absolute; top:15px; right:15px; background:#5080BE; color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:14px; }
+        .edit-section { display:none; margin-top:20px; }
+        .edit-section.show { display:block; }
+        table.calendar { width:100%; border-collapse:collapse; }
+        table.calendar th, table.calendar td { border:1px solid #7EBBDA; text-align:center; padding:12px; cursor:pointer; }
+        table.calendar th { background:#5080BE; color:white; }
+        table.calendar td:hover { background:#E6F5FA; }
+        table.calendar td.gray { color:#aaa; }
+        .daily-header { display:flex; justify-content:space-between; align-items:center; background:#5080BE; color:white; padding:20px 40px; border-radius:50px; margin-bottom:30px; }
+        .day-number { background:white; color:#5080BE; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+        .weekday-line { display:flex; justify-content:center; gap:15px; font-size:15px; margin:20px 0; color:#5080BE; }
+        .weekday-line span.bold { font-weight:bold; }
+        .daily-layout { display:grid; grid-template-columns:1fr 420px; gap:40px; }
+        .hour-block { display:flex; margin-bottom:20px; align-items:center; }
+        .hour-label { width:90px; font-weight:bold; font-size:17px; color:#5080BE; }
+        .hour-input { flex:1; border-bottom:1px dotted #7EBBDA; min-height:35px; padding:5px; contenteditable:"true"; outline:none; }
+        .sidebar-box { background:linear-gradient(to bottom, #7EBBDA, #E6F5FA); color:#073A4B; padding:25px; border-radius:12px; margin-bottom:30px; }
+        .sidebar-box h4 { text-align:center; margin-bottom:20px; font-size:18px; color:#5080BE; }
+        .priority-line { display:flex; align-items:center; margin-bottom:18px; }
+        .priority-line span { font-size:24px; margin-right:12px; }
+        .priority-input { flex:1; contenteditable:"true"; min-height:35px; background:rgba(255,255,255,0.6); padding:8px; border-radius:6px; outline:none; }
+        .task-list div { display:flex; align-items:center; margin-bottom:12px; }
+        .task-list input[type="checkbox"] { width:20px; height:20px; margin-right:12px; accent-color:#5080BE; }
+        .task-input { flex:1; contenteditable:"true"; background:rgba(255,255,255,0.6); padding:8px; border-radius:6px; outline:none; }
+        .water-glasses { display:flex; justify-content:center; gap:12px; font-size:32px; cursor:pointer; margin:20px 0; }
+        .water-glasses span.filled { color:#5080BE; }
+        .contact-form { margin-bottom:30px; padding:20px; background:#E0F2FC; border-radius:12px; border:1px solid #C6DEF6; }
+        .contact-list .contact { padding:15px; margin-bottom:15px; background:#E6F5FA; border-radius:8px; }
+        .menu-btn { position:fixed; top:20px; left:20px; background:#5080BE; color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; box-shadow:0 4px 15px rgba(80,128,190,0.3); z-index:1000; }
+        .menu { position:fixed; top:0; left:-300px; width:280px; height:100%; background:#5080BE; box-shadow:4px 0 20px rgba(80,128,190,0.2); transition:left 0.3s ease; padding:80px 20px 20px; z-index:999; }
+        .menu.open { left:0; }
+        .menu a { display:block; padding:15px; color:white; text-decoration:none; font-weight:bold; font-size:18px; border-bottom:1px solid rgba(255,255,255,0.2); }
+        #exportBtn { position:fixed; bottom:30px; right:30px; background:#5080BE; color:white; padding:15px 25px; border:none; border-radius:50px; font-size:18px; cursor:pointer; box-shadow:0 4px 15px rgba(80,128,190,0.3); z-index:1000; }
+        @media (max-width:900px) { 
+            .daily-layout, .two-columns { grid-template-columns:1fr; } 
+            .monthly-grid { grid-template-columns:1fr; }
+            .page { padding:20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
+    <div class="menu" id="sideMenu">
+        <a href="javascript:showPortada()">Portada</a>
+        <a href="javascript:showAniversarios()">Aniversarios</a>
+        <a href="javascript:showPlanner()">Planner</a>
+        <a href="javascript:showCalendario()">Calendario 2026</a>
+        <a href="javascript:showContactos()">Contactos</a>
+    </div>
+
+    <button id="exportBtn">Exportar a PDF</button>
+
+    <div class="container" id="content"></div>
+
+    <script>
+        let db;
+        const dbRequest = indexedDB.open("Agenda2026", 5);
+
+        dbRequest.onupgradeneeded = (event) => {
+            db = event.target.result;
+            const stores = ["portada", "aniversarios", "planner", "contactos", "dias"];
+            stores.forEach(store => {
+                if (!db.objectStoreNames.contains(store)) {
+                    if (store === "contactos") db.createObjectStore(store, { autoIncrement: true });
+                    else if (store === "dias") db.createObjectStore(store, { keyPath: "fecha" });
+                    else db.createObjectStore(store, { keyPath: "mes" });
+                }
+            });
+        };
+
+        dbRequest.onsuccess = (event) => {
+            db = event.target.result;
+            showPortada();
+        };
+
+        function guardar(store, data) {
+            const tx = db.transaction(store, "readwrite");
+            tx.objectStore(store).put(data);
+        }
+
+        function cargar(store, key) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(store);
+                const req = tx.objectStore(store).get(key);
+                req.onsuccess = () => resolve(req.result || {});
+            });
+        }
+
+        function cargarTodos(store) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(store);
+                const req = tx.objectStore(store).getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        const monthsES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+        const weekdays = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+        const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+        function toggleMenu() {
+            document.getElementById('sideMenu').classList.toggle('open');
+        }
+
+        function toggleEdit(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('show');
+        }
+
+        async function showPortada() {
+            const data = await cargar("portada", "principal") || {};
+            document.getElementById('content').innerHTML = `
+            <div class="page">
+                <div class="header-beige">INFORMACIÓN PERSONAL</div>
+                <div class="two-columns">
+                    <div>
+                        <div class="field"><label>Nombre de la empresa:</label><input type="text" value="${data.empresa || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Dirección:</label><input type="text" value="${data.direccionP || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Ciudad:</label><input type="text" value="${data.ciudadP || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Teléfono:</label><input type="text" value="${data.telefonoP || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Email:</label><input type="text" value="${data.emailP || ''}" oninput="guardarPortada()"></div>
+                    </div>
+                    <div>
+                        <div class="field"><label>C.P.:</label><input type="text" value="${data.cpP || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Whatsapp:</label><input type="text" value="${data.whatsappP || ''}" oninput="guardarPortada()"></div>
+                    </div>
+                </div>
+                <div class="header-beige">INFORMACIÓN COMERCIAL</div>
+                <div class="two-columns">
+                    <div>
+                        <div class="field"><label>Nombre:</label><input type="text" value="${data.nombreC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Dirección:</label><input type="text" value="${data.direccionC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Ciudad:</label><input type="text" value="${data.ciudadC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Teléfono:</label><input type="text" value="${data.telefonoC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Email:</label><input type="text" value="${data.emailC || ''}" oninput="guardarPortada()"></div>
+                    </div>
+                    <div>
+                        <div class="field"><label>C.P.:</label><input type="text" value="${data.cpC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Whatsapp:</label><input type="text" value="${data.whatsappC || ''}" oninput="guardarPortada()"></div>
+                        <div class="field"><label>Cargo:</label><input type="text" value="${data.cargo || ''}" oninput="guardarPortada()"></div>
+                    </div>
+                </div>
+                <div class="header-beige">INFORMACIÓN ADICIONAL</div>
+                <div id="infoAdicional">${Array(15).fill('<div class="notes-line" contenteditable="true" onblur="guardarInfoAdicional()"></div>').join('')}</div>
+            </div>`;
+            cargarInfoAdicional();
+            toggleMenu();
+        }
+
+        function guardarPortada() {
+            const inputs = document.querySelectorAll('.page input');
+            const data = {
+                id: "principal",
+                empresa: inputs[0].value,
+                direccionP: inputs[1].value,
+                ciudadP: inputs[2].value,
+                telefonoP: inputs[3].value,
+                emailP: inputs[4].value,
+                cpP: inputs[5].value,
+                whatsappP: inputs[6].value,
+                nombreC: inputs[7].value,
+                direccionC: inputs[8].value,
+                ciudadC: inputs[9].value,
+                telefonoC: inputs[10].value,
+                emailC: inputs[11].value,
+                cpC: inputs[12].value,
+                whatsappC: inputs[13].value,
+                cargo: inputs[14].value
+            };
+            guardar("portada", data);
+        }
+
+        function guardarInfoAdicional() {
+            const lines = Array.from(document.querySelectorAll('#infoAdicional .notes-line')).map(l => l.innerText);
+            localStorage.setItem("infoAdicional", JSON.stringify(lines));
+        }
+
+        function cargarInfoAdicional() {
+            const saved = localStorage.getItem("infoAdicional");
+            if (saved) {
+                const lines = JSON.parse(saved);
+                document.querySelectorAll('#infoAdicional .notes-line').forEach((l, i) => l.innerText = lines[i] || '');
+            }
+        }
+
+        function showAniversarios() {
+            let html = '<div class="page"><div class="header-beige">ANIVERSARIOS</div><div class="monthly-grid">';
+            for (let i = 0; i < 12; i++) {
+                const mes = monthsES[i];
+                html += `<div class="month-box">
+                    <h4>${mes}</h4>
+                    <button class="edit-btn" onclick="toggleEdit('edit-aniv-${i}')">Editar</button>
+                    <div id="edit-aniv-${i}" class="edit-section">
+                        ${Array(12).fill('<div class="notes-line" contenteditable="true" onblur="guardarAniversario(\'' + mes + '\')"></div>').join('')}
+                    </div>
+                </div>`;
+            }
+            html += '</div></div>';
+            document.getElementById('content').innerHTML = html;
+            toggleMenu();
+            monthsES.forEach(async (mes, i) => {
+                const data = await cargar("aniversarios", mes);
+                if (data && data.lines) {
+                    document.querySelectorAll(`#edit-aniv-${i} .notes-line`).forEach((l, j) => l.innerText = data.lines[j] || '');
+                }
+            });
+        }
+
+        function guardarAniversario(mes) {
+            const index = monthsES.indexOf(mes);
+            const lines = Array.from(document.querySelectorAll(`#edit-aniv-${index} .notes-line`)).map(l => l.innerText);
+            guardar("aniversarios", { mes, lines });
+        }
+
+        function showPlanner() {
+            let html = '<div class="page"><div class="header-beige">PLANNER</div><div class="monthly-grid">';
+            for (let i = 0; i < 12; i++) {
+                const mes = monthsES[i];
+                html += `<div class="month-box">
+                    <h4>${mes}</h4>
+                    <button class="edit-btn" onclick="toggleEdit('edit-plan-${i}')">Editar</button>
+                    <div id="edit-plan-${i}" class="edit-section">
+                        ${Array(18).fill('<div class="notes-line" contenteditable="true" onblur="guardarPlanner(\'' + mes + '\')"></div>').join('')}
+                    </div>
+                </div>`;
+            }
+            html += '</div></div>';
+            document.getElementById('content').innerHTML = html;
+            toggleMenu();
+            monthsES.forEach(async (mes, i) => {
+                const data = await cargar("planner", mes);
+                if (data && data.lines) {
+                    document.querySelectorAll(`#edit-plan-${i} .notes-line`).forEach((l, j) => l.innerText = data.lines[j] || '');
+                }
+            });
+        }
+
+        function guardarPlanner(mes) {
+            const index = monthsES.indexOf(mes);
+            const lines = Array.from(document.querySelectorAll(`#edit-plan-${index} .notes-line`)).map(l => l.innerText);
+            guardar("planner", { mes, lines });
+        }
+
+        async function showContactos() {
+            const contactos = await cargarTodos("contactos");
+            let html = '<div class="page"><div class="header-beige">MIS CONTACTOS</div>';
+            html += `<div class="contact-form">
+                <div class="field"><label>Nombre:</label><input id="c-name" type="text"></div>
+                <div class="two-columns">
+                    <div class="field"><label>Teléfono:</label><input id="c-tel" type="text"></div>
+                    <div class="field"><label>Whatsapp:</label><input id="c-wa" type="text"></div>
+                </div>
+                <div class="two-columns">
+                    <div class="field"><label>Email:</label><input id="c-email" type="text"></div>
+                    <div class="field"><label>Facebook:</label><input id="c-fb" type="text"></div>
+                </div>
+                <div class="field"><label>Instagram:</label><input id="c-ig" type="text"></div>
+                <button class="save-btn" onclick="addContact()">Agregar Contacto</button>
+            </div><div class="contact-list">`;
+            contactos.forEach(c => {
+                html += `<div class="contact"><strong>${c.name || 'Sin nombre'}</strong><br>Tel: ${c.tel || ''} | WA: ${c.wa || ''}<br>Email: ${c.email || ''}<br>FB: ${c.fb || ''} | IG: ${c.ig || ''}</div>`;
+            });
+            html += '</div></div>';
+            document.getElementById('content').innerHTML = html;
+            toggleMenu();
+        }
+
+        function addContact() {
+            const c = {
+                name: document.getElementById('c-name').value || 'Sin nombre',
+                tel: document.getElementById('c-tel').value,
+                wa: document.getElementById('c-wa').value,
+                email: document.getElementById('c-email').value,
+                fb: document.getElementById('c-fb').value,
+                ig: document.getElementById('c-ig').value
+            };
+            guardar("contactos", c);
+            document.querySelectorAll('.contact-form input').forEach(i => i.value = '');
+            showContactos();
+        }
+
+        function showCalendario() {
+            let html = '<div class="page"><h1>Calendario 2026</h1><div class="monthly-grid">';
+            let offset = 3;
+            for (let m = 0; m < 12; m++) {
+                html += `<div class="month-box"><h4>${monthsES[m]} 2026</h4><table class="calendar"><thead><tr>`;
+                weekdays.forEach(d => html += `<th>${d}</th>`);
+                html += `</tr></thead><tbody>`;
+                let day = 1;
+                for (let row = 0; row < 6; row++) {
+                    html += '<tr>';
+                    for (let col = 0; col < 7; col++) {
+                        if (row === 0 && col < offset) {
+                            html += '<td class="gray"></td>';
+                        } else if (day <= daysInMonth[m]) {
+                            const fecha = `2026-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            html += `<td onclick="showDay('${fecha}')">${day++}</td>`;
+                        } else {
+                            html += '<td class="gray"></td>';
+                        }
+                    }
+                    html += '</tr>';
+                }
+                html += `</tbody></table></div>`;
+                offset = (offset + daysInMonth[m]) % 7;
+            }
+            html += '</div></div>';
+            document.getElementById('content').innerHTML = html;
+            toggleMenu();
+        }
+
+        async function showDay(fecha) {
+            let data = await cargar("dias", fecha);
+            if (!data) {
+                data = {
+                    horario: Array(11).fill(''),
+                    prioridades: Array(3).fill(''),
+                    tareas: Array(12).fill({text: '', checked: false}),
+                    hidratacion: 0,
+                    notas: Array(15).fill('')
+                };
+            }
+
+            data.horario = data.horario || Array(11).fill('');
+            data.prioridades = data.prioridades || Array(3).fill('');
+            data.tareas = data.tareas || Array(12).fill({text: '', checked: false});
+            data.notas = data.notas || Array(15).fill('');
+            data.hidratacion = data.hidratacion || 0;
+
+            const [y, mStr, dStr] = fecha.split('-');
+            const m = parseInt(mStr) - 1;
+            const d = parseInt(dStr);
+            const date = new Date(y, m, d);
+            const wdIndex = date.getDay();
+            const adjusted = (wdIndex + 6) % 7;
+            let weekdayLine = weekdays.map((w,i) => `<span${i===adjusted?' class="bold"':''}>${w}</span>`).join(' ');
+
+            document.getElementById('content').innerHTML = `
+            <div class="page">
+                <div class="daily-header">
+                    <div class="day-number">${dStr}</div>
+                    <div>
+                        <h2>${monthsES[m]}</h2>
+                        <div class="weekday-line">${weekdayLine}</div>
+                    </div>
+                </div>
+                <div class="daily-layout">
+                    <div>
+                        ${['08:00h','09:00h','10:00h','11:00h','12:00h','13:00h','14:00h','15:00h','16:00h','17:00h','18:00h'].map((h, i) => 
+                            `<div class="hour-block"><div class="hour-label">${h}</div><div class="hour-input" contenteditable="true" onblur="guardarDia('${fecha}')">${data.horario[i] || ''}</div></div>`
+                        ).join('')}
+                    </div>
+                    <div>
+                        <div class="sidebar-box">
+                            <h4>Prioridades del día</h4>
+                            ${Array(3).fill().map((_, i) => `<div class="priority-line"><span>★</span><div class="priority-input" contenteditable="true" onblur="guardarDia('${fecha}')">${data.prioridades[i] || ''}</div></div>`).join('')}
+                        </div>
+                        <div class="sidebar-box">
+                            <h4>Tareas</h4>
+                            <div class="task-list">
+                                ${Array(12).fill().map((_, i) => `<div><input type="checkbox" ${data.tareas[i].checked ? 'checked' : ''} onchange="guardarDia('${fecha}')"><div class="task-input" contenteditable="true" onblur="guardarDia('${fecha}')">${data.tareas[i].text || ''}</div></div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="sidebar-box">
+                            <h4>Hidratar</h4>
+                            <div class="water-glasses">
+                                ${Array(8).fill().map((_, i) => `<span class="glass" onclick="setHidratacion('${fecha}', ${i+1})">${i < data.hidratacion ? '💧' : '○'}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="sidebar-box">
+                            <h4>Notas</h4>
+                            ${Array(15).fill().map((_, i) => `<div class="notes-line" contenteditable="true" onblur="guardarDia('${fecha}')">${data.notas[i] || ''}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            toggleMenu();
+        }
+
+        function guardarDia(fecha) {
+            const horario = Array.from(document.querySelectorAll('.hour-input')).map(el => el.innerText);
+            const prioridades = Array.from(document.querySelectorAll('.priority-input')).map(el => el.innerText);
+            const tareas = Array.from(document.querySelectorAll('.task-list > div')).map(div => ({
+                text: div.querySelector('.task-input').innerText,
+                checked: div.querySelector('input[type="checkbox"]').checked
+            }));
+            const hidratacion = Array.from(document.querySelectorAll('.glass')).filter(g => g.innerText === '💧').length;
+            const notas = Array.from(document.querySelectorAll('.sidebar-box:last-child .notes-line')).map(el => el.innerText);
+
+            guardar("dias", { fecha, horario, prioridades, tareas, hidratacion, notas });
+        }
+
+        function setHidratacion(fecha, num) {
+            guardar("dias", { fecha, hidratacion: num });
+            showDay(fecha);
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const element = document.querySelector('.page') || document.body;
+            html2pdf().set({margin:0.4, filename:'Agenda_2026.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in',format:'a4',orientation:'portrait'}}).from(element).save();
+        });
+    </script>
+</body>
+</html>
